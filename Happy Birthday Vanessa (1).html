@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Happy Birthday Vanessa</title>
+<style>
+:root{--bg:#000;--fg:#fff;--accent:#ff7ad9;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#000;--fg:#fff;--accent:#ff7ad9}}
+:root[data-theme="dark"]{--bg:#000;--fg:#fff;--accent:#ff7ad9}
+html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;font-family:Georgia,'Times New Roman',serif;color:var(--fg)}
+canvas{position:fixed;inset:0;display:block}
+.msg{position:fixed;left:0;right:0;bottom:calc(6% + env(safe-area-inset-bottom,0px));text-align:center;pointer-events:none;padding:0 16px;text-shadow:0 0 18px rgba(255,122,217,.7)}
+h1{margin:0 0 8px;font-size:clamp(26px,7vw,48px);font-weight:700;letter-spacing:.02em}
+p{margin:4px 0;font-size:clamp(16px,4.5vw,24px)}
+.name{color:var(--accent);font-style:italic}
+.msg{z-index:3}
+#mu{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));right:14px;z-index:4;border:1px solid rgba(255,255,255,.5);background:rgba(0,0,0,.45);color:var(--fg);padding:9px 16px;border-radius:999px;font:600 15px Georgia,serif;cursor:pointer;backdrop-filter:blur(6px)}
+#balloons{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:2}
+.b{position:absolute;bottom:-160px;animation:rise linear infinite}
+.b span{display:block;position:relative;border-radius:50% 50% 50% 50%/58% 58% 42% 42%;background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.75),transparent 28%),var(--c);box-shadow:inset -6px -8px 14px rgba(0,0,0,.25);animation:sway ease-in-out infinite alternate}
+.b span::after{content:'';position:absolute;left:50%;top:100%;width:1px;height:70px;background:rgba(255,255,255,.5)}
+@keyframes rise{to{transform:translateY(-130vh)}}
+@keyframes sway{from{transform:translateX(-18px) rotate(-5deg)}to{transform:translateX(18px) rotate(5deg)}}
+</style>
+</head>
+<body>
+<button id="mu" type="button">🎵 Play music</button>
+<div class="msg">
+  <h1>Happy Birthday 🎈🎊🥳🎂</h1>
+  <p>Love, <span class="name">Vanessa Cordova</span></p>
+  <p>I love you 😘</p>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,100);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+document.body.prepend(renderer.domElement);
+function fit(){camera.aspect=innerWidth/innerHeight;camera.position.z=camera.aspect<1?13:9;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}
+fit();addEventListener('resize',fit);
+
+const mat=new THREE.PointsMaterial({size:.04,vertexColors:true,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false});
+function make(pos,col){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));return new THREE.Points(g,mat)}
+
+const group=new THREE.Group();scene.add(group);
+
+// core sphere (fibonacci lattice)
+{const N=7000,R=2.2,p=[],c=[];
+for(let k=0;k<N;k++){const y=1-2*(k+.5)/N,r=Math.sqrt(1-y*y),t=k*2.399963;
+p.push(Math.cos(t)*r*R,y*R,Math.sin(t)*r*R);
+const col=new THREE.Color().setHSL(.78+.12*Math.sin(k*.002)+(y+1)*.04,1,.6);c.push(col.r,col.g,col.b)}
+group.add(make(p,c))}
+
+// orbit rings (same idea as the reel's loop)
+const rings=[],count=6,particleCount=2600;
+for(let i=0;i<count;i++){
+ const radius=3.1+i*.18,thickness=.35,positions=[],colors=[];
+ for(let j=0;j<particleCount;j++){
+  const angle=(j/particleCount)*Math.PI*2;
+  const rv=radius+(Math.random()-.5)*thickness;
+  positions.push(Math.cos(angle)*rv,(Math.random()-.5)*thickness,Math.sin(angle)*rv);
+  const hue=(i/count)*.7+(j/particleCount)*.3;
+  const color=new THREE.Color().setHSL(hue,1,.6);color.multiplyScalar(1.2);
+  colors.push(color.r,color.g,color.b)}
+ const ring=make(positions,colors);
+ ring.rotation.set(Math.random()*Math.PI,Math.random()*Math.PI,Math.random()*Math.PI);
+ ring.userData.s=[(Math.random()-.5)*.006,(Math.random()-.5)*.006,(Math.random()-.5)*.006];
+ group.add(ring);rings.push(ring)}
+
+let tx=0,ty=0;
+addEventListener('pointermove',e=>{ty=(e.clientX/innerWidth-.5)*1.2;tx=(e.clientY/innerHeight-.5)*.8});
+(function loop(){requestAnimationFrame(loop);
+ group.rotation.y+=.004;group.rotation.x+=(tx-group.rotation.x)*.03;
+ rings.forEach(r=>{r.rotation.x+=r.userData.s[0];r.rotation.y+=r.userData.s[1];r.rotation.z+=r.userData.s[2]});
+ const s=1+Math.sin(performance.now()*.002)*.02;group.scale.set(s,s,s);
+ renderer.render(scene,camera)})();
+
+const box=document.createElement('div');box.id='balloons';document.body.appendChild(box);
+const pal=['#ff4d6d','#ffb703','#4cc9f0','#b5179e','#80ed99','#ff7ad9','#f72585','#ffd60a','#7209b7','#4895ef'];
+for(let i=0;i<100;i++){
+ const w=28+Math.random()*34,b=document.createElement('div'),s=document.createElement('span');
+ b.className='b';b.style.left=(Math.random()*96)+'%';
+ b.style.animationDuration=(9+Math.random()*10)+'s';
+ b.style.animationDelay=(-Math.random()*19)+'s';
+ s.style.width=w+'px';s.style.height=w*1.22+'px';
+ s.style.setProperty('--c',pal[i%pal.length]);
+ s.style.animationDuration=(1.8+Math.random()*2.4)+'s';
+ b.appendChild(s);box.appendChild(b)}
+
+// Happy Birthday melody, synthesized (no audio file needed)
+const NF={C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392,A4:440,B4:493.88,C5:523.25,D5:587.33,E5:659.25,F5:698.46,G5:783.99};
+const tune=[['G4',.75],['G4',.25],['A4',1],['G4',1],['C5',1],['B4',2],
+['G4',.75],['G4',.25],['A4',1],['G4',1],['D5',1],['C5',2],
+['G4',.75],['G4',.25],['G5',1],['E5',1],['C5',1],['B4',1],['A4',2],
+['F5',.75],['F5',.25],['E5',1],['C5',1],['D5',1],['C5',2]];
+let ac=null,timer=null,on=false,userOff=false;
+const btn=document.getElementById('mu');
+function playTune(){
+ let t=ac.currentTime+.05;const beat=.5;
+ tune.forEach(([n,d])=>{
+  const o=ac.createOscillator(),o2=ac.createOscillator(),g=ac.createGain();
+  o.type='triangle';o2.type='sine';o.frequency.value=NF[n];o2.frequency.value=NF[n]/2;
+  const len=d*beat;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.22,t+.02);
+  g.gain.exponentialRampToValueAtTime(.001,t+len*.95);
+  o.connect(g);o2.connect(g);g.connect(ac.destination);
+  o.start(t);o2.start(t);o.stop(t+len);o2.stop(t+len);t+=len});
+}
+function start(){
+ try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();ac.resume();
+ playTune();timer=setInterval(playTune,13500);on=true;btn.textContent='🔇 Stop music'}catch(e){}
+}
+function stop(){clearInterval(timer);if(ac)ac.suspend();on=false;btn.textContent='🎵 Play music'}
+btn.addEventListener('click',e=>{e.stopPropagation();if(on){userOff=true;stop()}else{userOff=false;if(ac&&timer){clearInterval(timer);ac.resume();playTune();timer=setInterval(playTune,13500);on=true;btn.textContent='🔇 Stop music'}else start()}});
+(function auto(){
+ const ev=['pointerdown','touchstart','click','keydown','wheel'];
+ const go=e=>{if(e&&e.target&&btn.contains(e.target))return;if(on||userOff)return;start();if(ac&&ac.state==='running')ev.forEach(x=>removeEventListener(x,go))};
+ ev.forEach(x=>addEventListener(x,go,{passive:true}));
+ try{const t=new (window.AudioContext||window.webkitAudioContext)();if(t.state==='running'){ac=t;start()}else t.close()}catch(e){}
+})();
+</script>
+</body>
+</html>
